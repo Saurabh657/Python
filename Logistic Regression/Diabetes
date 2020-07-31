@@ -1,0 +1,225 @@
+#By :Saurabh Parab
+
+#import the Necessary libraries
+import pandas as pd
+import numpy as np
+import warnings
+warnings.filterwarnings("ignore")
+pd.set_option("display.max_columns",None)
+
+
+# In[3]:
+
+
+#Read the data into dataframe 
+df = pd.read_csv(r'C:\Users\Saurabh\Downloads\diabetes2.csv',header = 0, delimiter=' *, *')
+df.head()
+
+
+# In[4]:
+
+
+df.shape
+
+
+# In[5]:
+
+
+#CREATE A COPY OF THE DATAFRAME
+df_rev=pd.DataFrame.copy(df)
+
+
+# In[7]:
+
+
+df_rev.isnull().sum()
+
+
+# In[9]:
+
+
+df_rev.dtypes
+
+
+# In[11]:
+
+
+df_rev=df_rev.replace(['?'],np.nan)
+
+
+# In[12]:
+
+
+df_rev.isnull().sum()
+
+
+# In[17]:
+
+
+X=df_rev.values[:,0:-1]
+Y=df_rev.values[:,-1]
+
+
+# In[18]:
+
+
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+scaler.fit(X)
+X=scaler.transform(X)
+print(X)
+
+
+# In[19]:
+
+
+df_rev.dtypes
+
+
+# In[20]:
+
+
+Y=Y.astype(int)
+
+
+# In[21]:
+
+
+from sklearn.model_selection import train_test_split
+
+#Split the data into test and train
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2,
+random_state=10)
+
+
+# In[22]:
+
+
+from sklearn.linear_model import LogisticRegression
+
+#create a model
+classifier=LogisticRegression()
+
+#build train the model
+classifier.fit(X_train,Y_train)
+
+#predict using the model you created
+Y_pred=classifier.predict(X_test)
+
+#we areusing this for comparision
+#print(list(zip(Y_test,Y_pred)))
+
+print(classifier.coef_)
+print(classifier.intercept_)
+
+
+# In[23]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+cfm = confusion_matrix(Y_test,Y_pred)
+print(cfm)
+
+print("CLASSIFICATION MATRIX:")
+print(classification_report(Y_test,Y_pred))
+
+acc = accuracy_score(Y_test,Y_pred)
+print("ACCURACY OF THE MODEL:",acc)
+
+
+# In[24]:
+
+
+#Store the predicted probabilitiles
+y_pred_prob=classifier.predict_proba(X_test)
+print(y_pred_prob)
+
+
+# In[35]:
+
+
+y_pred_class=[]
+for value in y_pred_prob[:,1]:
+    if value > 0.42:
+        y_pred_class.append(1)
+    else:
+        y_pred_class.append(0)
+print(y_pred_class)
+
+
+# In[36]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+cfm = confusion_matrix(Y_test,y_pred_class)
+print(cfm)
+
+print("CLASSIFICATION MATRIX:")
+print(classification_report(Y_test,y_pred_class))
+
+acc = accuracy_score(Y_test,y_pred_class)
+print("ACCURACY OF THE MODEL:",acc)
+
+
+# In[37]:
+
+
+from sklearn import metrics
+
+fpr, tpr, z = metrics.roc_curve(Y_test, y_pred_prob[:,1])
+auc = metrics.auc(fpr,tpr)
+print(auc)
+
+
+# In[39]:
+
+
+import matplotlib.pyplot as plt
+plt.title('Receiver Operating Characteristic')
+plt.plot(fpr,tpr, 'b', label = auc)     #x axis is fpr and y axis is tpr
+plt.legend(loc = 'lower right')
+plt.plot([0, 1], [0, 1],'r--')
+plt.xlim([0, 1])
+plt.ylim([0, 1])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+
+plt.show()
+
+
+# In[40]:
+
+
+from sklearn import metrics
+
+fpr, tpr,z = metrics.roc_curve(Y_test,y_pred_class)
+auc = metrics.auc(fpr,tpr)
+print(auc)
+print(fpr)
+print(tpr)
+
+
+# In[41]:
+
+
+import matplotlib.pyplot as plt
+
+plt.title('Receiver Operating Characteristic')
+plt.plot(fpr, tpr, 'b', label = auc)
+plt.legend(loc = 'lower right')
+plt.plot([0, 1], [0, 1],'r--')
+plt.xlim([0, 1])
+plt.ylim([0, 1])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+
+plt.show()
+
+
+# In[ ]:
+
+
+
+
