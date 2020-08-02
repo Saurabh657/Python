@@ -1,0 +1,198 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+# Required Python Machine learning Packages
+import pandas as pd
+import numpy as np
+
+
+# In[2]:
+
+
+adult_df = pd.read_csv(r'C:\Users\Saurabh\adult_data.csv',
+                       header = None, delimiter=' *, *',engine='python')
+
+adult_df.head()
+
+
+# In[3]:
+
+
+adult_df.columns = ['age', 'workclass', 'fnlwgt', 'education', 'education_num',
+                    'marital_status', 'occupation', 'relationship',
+                    'race', 'sex', 'capital_gain', 'capital_loss',
+                    'hours_per_week', 'native_country', 'income']
+
+adult_df.head()
+
+
+# In[5]:
+
+
+import matplotlib.pyplot as plt
+
+adult_df.boxplot() #for plotting boxplots for all the numerical columns in the df
+plt.show()
+
+
+# In[6]:
+
+
+adult_df.boxplot(column='fnlwgt')
+plt.show()
+
+
+# In[7]:
+
+
+adult_df.boxplot(column="education_num")
+
+
+# In[8]:
+
+
+adult_df.boxplot(column='capital_gain')
+plt.show()
+
+
+# In[9]:
+
+
+adult_df.boxplot(column='capital_loss')
+plt.show()
+
+
+# In[10]:
+
+
+adult_df.boxplot(column='hours_per_week')
+plt.show()
+
+
+# In[11]:
+
+
+adult_df.boxplot(column='age') 
+plt.show()
+
+
+# In[12]:
+
+
+#for value in colname:
+q1 = adult_df['age'].quantile(0.25) #first quartile value
+q3 = adult_df['age'].quantile(0.75) # third quartile value
+iqr = q3-q1 #Interquartile range
+low  = q1-1.5*iqr #acceptable range
+high = q3+1.5*iqr #acceptable range
+
+
+# In[13]:
+
+
+adult_df_include = adult_df.loc[(adult_df['age'] >= low) &                                 (adult_df['age'] <= high)] # meeting the acceptable range
+adult_df_exclude = adult_df.loc[(adult_df['age'] < low) |                                (adult_df['age'] > high)] #not meeting the acceptable range
+
+
+# In[14]:
+
+
+print(adult_df_include.shape)
+
+
+# In[15]:
+
+
+print(adult_df_exclude.shape)
+
+
+# In[16]:
+
+
+print(low)
+
+
+# In[17]:
+
+
+age_mean=int(adult_df_include.age.mean()) #finding the mean of the acceptable range
+print(age_mean)
+
+
+# In[18]:
+
+
+#imputing outlier values with mean value
+adult_df_exclude.age=age_mean
+
+
+# In[19]:
+
+
+#getting back the original shape of df
+adult_df_rev=pd.concat([adult_df_include,adult_df_exclude]) #concatenating both dfs to get 
+#the original shape
+adult_df_rev.shape
+
+
+# In[ ]:
+
+
+#capping approach
+
+adult_df_exclude.loc[adult_df_exclude["age"] <low, "age"] = low
+adult_df_exclude.loc[adult_df_exclude["age"] >high, "age"] = high
+
+
+# In[ ]:
+
+
+
+
+
+# In[20]:
+
+
+import matplotlib.pyplot as plt
+colname=[]
+for x in adult_df.columns[:-1]:
+    if adult_df[x].dtype=="int64" or adult_df[x].dtype=="float64":
+        colname.append(x)
+
+for x in colname:
+    adult_df.boxplot(column=x)
+    plt.show()
+
+
+# In[ ]:
+
+
+adult_df.drop(adult_df["capital_gain"]>80000,axis=0,inplace=True)
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
