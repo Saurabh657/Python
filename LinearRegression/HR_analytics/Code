@@ -1,0 +1,289 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[3]:
+
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+from datetime import timedelta
+from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn import metrics
+from sklearn.tree import DecisionTreeClassifier
+
+
+# In[4]:
+
+
+employee_survey_data = pd.read_csv(r'F:\rworkspace\logistic data sets\hr_analytics\employee_survey_data.csv')
+general_data = pd.read_csv(r'F:\rworkspace\logistic data sets\hr_analytics\general_data.csv')
+start_time = pd.read_csv(r'F:\rworkspace\logistic data sets\hr_analytics\in_time.csv')
+manager_survey_data = pd.read_csv(r'F:\rworkspace\logistic data sets\hr_analytics\manager_survey_data.csv')
+finish_time = pd.read_csv(r'F:\rworkspace\logistic data sets\hr_analytics\out_time.csv')
+
+
+# In[5]:
+
+
+print(general_data.head())
+
+
+# In[6]:
+
+
+print(employee_survey_data.head())
+
+
+# In[7]:
+
+
+print(manager_survey_data.head())
+
+
+# In[8]:
+
+
+print(start_time.head())
+
+
+# In[9]:
+
+
+print(finish_time.head())
+
+
+# In[10]:
+
+
+print('General data shape:', general_data.shape)
+print('Employee survey data shape:', employee_survey_data.shape)
+print('Manager survey data shape:', manager_survey_data.shape)
+print('Start working time data shape', start_time.shape)
+print('End working time data shape:', finish_time.shape)
+
+
+# In[11]:
+
+
+# Firstly, change column name Unnamed: 0 to EmployeeID in start and end time datasets.
+start_time.rename(columns={'Unnamed: 0':'EmployeeID'}, inplace=True)
+finish_time.rename(columns={'Unnamed: 0':'EmployeeID'}, inplace=True)
+
+
+# In[12]:
+
+
+#Let's set the column named EmployeeID in all files. We are getting ready for merging.
+general_data.set_index('EmployeeID', inplace=True)
+employee_survey_data.set_index('EmployeeID', inplace=True)
+manager_survey_data.set_index('EmployeeID', inplace=True)
+start_time.set_index('EmployeeID', inplace=True)
+finish_time.set_index('EmployeeID', inplace=True)
+
+
+# In[13]:
+
+
+#we will combine the files of general_data, employee_survey_data, manager_survey_data. We need to change time files before merging.
+main_data = pd.concat([general_data, employee_survey_data, manager_survey_data], axis = 1)
+print(main_data.columns.values)
+main_data.head()
+
+
+# In[14]:
+
+
+print(main_data.info())
+
+
+# In[15]:
+
+
+main_data.isnull().sum()
+
+
+# In[16]:
+
+
+main_data.isnull().any()
+
+
+# In[17]:
+
+
+main_data.fillna(0,inplace=True)
+
+
+# In[18]:
+
+
+main_data.drop(['EmployeeCount','StandardHours'],axis=1, inplace = True)
+
+
+# In[19]:
+
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set()
+
+
+# In[20]:
+
+
+corr_cols = main_data[['Age','Attrition','BusinessTravel','DistanceFromHome','Education', 'EducationField','Gender', 'JobLevel', 'JobRole',
+       'MaritalStatus', 'MonthlyIncome', 'NumCompaniesWorked',
+       'PercentSalaryHike', 'StockOptionLevel', 'TotalWorkingYears',
+       'TrainingTimesLastYear', 'YearsAtCompany', 'YearsSinceLastPromotion',
+       'YearsWithCurrManager']]
+
+
+# In[21]:
+
+
+corr = corr_cols.corr()
+plt.figure(figsize=(16,7))
+sns.heatmap(corr,annot=True)
+plt.show()
+
+
+# # Convert all the Categorical data into numerical data
+
+# In[22]:
+
+
+print(main_data['BusinessTravel'].unique())
+print(main_data['Department'].unique())
+print(main_data['EducationField'].unique())
+print(main_data['Gender'].unique())
+print(main_data['JobRole'].unique())
+print(main_data['MaritalStatus'].unique())
+print(main_data['Over18'].unique())
+
+
+# In[23]:
+
+
+from sklearn.preprocessing import LabelEncoder
+labelEncoder_X = LabelEncoder()
+main_data['BusinessTravel'] = labelEncoder_X.fit_transform(main_data['BusinessTravel'])
+main_data['Department'] = labelEncoder_X.fit_transform(main_data['Department'])
+main_data['EducationField'] = labelEncoder_X.fit_transform(main_data['EducationField'])
+main_data['Gender'] = labelEncoder_X.fit_transform(main_data['Gender'])
+main_data['JobRole'] = labelEncoder_X.fit_transform(main_data['JobRole'])
+main_data['MaritalStatus'] = labelEncoder_X.fit_transform(main_data['MaritalStatus'])
+main_data['Over18'] = labelEncoder_X.fit_transform(main_data['Over18'])
+
+
+# In[24]:
+
+
+#Attriton is dependent var
+from sklearn.preprocessing import LabelEncoder
+label_encoder_y=LabelEncoder()
+main_data['Attrition']=label_encoder_y.fit_transform(main_data['Attrition'])
+
+
+# In[25]:
+
+
+main_data.head()
+
+
+# In[26]:
+
+
+y = main_data['Attrition']
+x = main_data.drop('Attrition', axis = 1)
+
+
+# In[27]:
+
+
+from sklearn.model_selection import train_test_split
+X_train,X_test, y_train, y_test = train_test_split(x,y, test_size = 0.20, random_state=42)
+
+
+# In[28]:
+
+
+from sklearn.preprocessing import StandardScaler
+Scaler_X = StandardScaler()
+X_train = Scaler_X.fit_transform(X_train)
+X_test = Scaler_X.transform(X_test)
+
+
+# In[29]:
+
+
+#import some comman libs:
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import confusion_matrix, accuracy_score
+
+
+# In[30]:
+
+
+from sklearn.linear_model import LogisticRegression
+
+lr = LogisticRegression()
+lr.fit(X_train,y_train)
+y_pred = lr.predict(X_test)
+
+print(accuracy_score(y_test,y_pred))
+print(confusion_matrix(y_test,y_pred))
+
+
+# In[31]:
+
+
+from sklearn.metrics import classification_report
+print(classification_report(y_test,y_pred))
+
+
+# # Adjusting the Threshold
+
+# In[32]:
+
+
+#Store the predicted probabilitiles
+y_pred_prob=lr.predict_proba(X_test)
+print(y_pred_prob)
+
+
+# In[41]:
+
+
+y_pred_class=[]
+for value in y_pred_prob[:,1]:
+    if value > 0.30:
+        y_pred_class.append(1)
+    else:
+        y_pred_class.append(0)
+print(y_pred_class)
+
+
+# In[42]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+cfm = confusion_matrix(y_test,y_pred_class)
+print(cfm)
+
+print("CLASSIFICATION MATRIX:")
+print(classification_report(y_test,y_pred_class))
+
+acc = accuracy_score(y_test,y_pred_class)
+print("ACCURACY OF THE MODEL:",acc)
+
+
+# In[ ]:
+
+
+
+
