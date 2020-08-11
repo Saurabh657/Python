@@ -1,0 +1,550 @@
+
+Created on Tue Aug 11 10:12:56 2020
+
+@author: Saurabh Parab
+"""
+
+
+
+#imports
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+
+# In[2]:
+
+
+#read the data into a frame
+data=pd.read_csv(r"C:\Users\Saurabh\Downloads\Advertising.csv",index_col = 0,header = 0)  #using the columns and header from the data file
+data.head()
+
+
+# In[3]:
+
+
+print(data.dtypes)
+print()
+print(data.shape)
+print()
+print(data.describe())
+
+
+# In[4]:
+
+
+#Assumption No.1:-There should be no outliers in the dataset and can be check using the boxplot function
+data.boxplot(column="newspaper")
+
+
+# In[5]:
+
+
+#Assumption No.2:-Every ind variable should have a linear relationship with the dep variable
+
+sns.pairplot(data,x_vars=["TV","radio","newspaper"],y_vars="sales",kind="reg") #kind=reg means we want thr regression line
+
+
+# In[6]:
+
+
+#create X with those variables that satisfy the assumption of linearity and Y
+X= data[['TV','radio','newspaper']]
+Y= data['sales']
+
+
+# In[7]:
+
+
+#Assumption no.2 :- Assumption of normality i.e the dependent variable shjould be normally distributed
+ #hist=true gives you the curve fitted over the diagram
+
+
+# In[8]:
+
+
+#incase of right or left skewd graph we should transfrom the data
+""""
+Log Transformation
+import numpy as np
+Y log=np.log(Y)
+""""
+
+
+# In[9]:
+
+
+#ideally its a good practise to check the normality for x varibales
+X.hist(bins=20)
+
+
+# In[10]:
+
+
+#/////////////Execute this block only once/////////////////
+
+from scipy.stats import skew
+data_num_skew = X.apply(lambda x: skew(x.dropna()))      #drops the missing values and measure the skewness
+data_num_skewed = data_num_skew[(data_num_skew > .75) | (data_num_skew < -.75)]  #subsett only the variables with high skewness
+
+print(data_num_skew)
+print(data_num_skewed)
+import numpy as np
+#apply log + 1 transformation for all numeric features with skewness over .75
+X[data_num_skewed.index] = np.log1p(X[data_num_skewed.index])  #performs log1p transform because only log0 results in infinity
+
+
+# In[11]:
+
+
+#Assumption No.4 There should be no multicollinearity in the data
+
+corr_df=X.corr(method="pearson")
+print(corr_df)
+
+sns.heatmap(corr_df,vmax=1.0,vmin=1.0,annot=True)
+
+
+# In[12]:
+
+
+from statsmodels.stats.outliers_influence import variance_inflation_factor as vif
+
+vif_df = pd.DataFrame()
+vif_df["features"] = X.columns
+vif_df["VIF Factor"] = [vif(X.values, i) for i in range(X.shape[1])]
+vif_df.round(2)
+
+
+# In[13]:
+
+
+"""">1000------> test_size=0.3
+<1000-------> test_size=0.2"""
+
+
+# In[14]:
+
+
+from sklearn.model_selection import train_test_split
+
+#Split the data into test and train
+X_train,X_test, Y_train, Y_test=train_test_split(X,Y, test_size=0.2,random_state=10)
+
+
+# In[15]:
+
+
+print(Y_train)
+
+
+# In[16]:
+
+
+from sklearn.linear_model import LinearRegression
+#create a model object
+lm = LinearRegression()
+#tain the model object
+lm.fit(X_train,Y_train)
+
+#print intercpt and coeffficents
+print (lm.intercept_)
+print (lm.coef_)
+
+
+# In[17]:
+
+
+X1=100    #X1,X2 and X3 is the amount we ae going to invest in the variables
+X2=100
+X3=100
+Y_pred =3.3532913858151474+(0.0437425   *X1)+(0.19303708 *X2)+(-0.04895137*X3)     #Y= B0 +B1.X1 +B2.X2+B3.X3
+print(Y_pred)
+
+
+# In[18]:
+
+
+#predicting suing the model
+Y_pred=lm.predict(X_test)                                        #we only pass X_test in the predict function
+print(Y_pred)
+
+
+# In[19]:
+
+
+new_df=pd.DataFrame()
+new_df=X_test
+
+new_df["Actual sales"]=Y_test
+new_df["Predicted sales"]=Y_pred
+new_df
+
+
+# In[20]:
+
+
+from sklearn.metrics import r2_score,mean_squared_error
+import numpy as np
+
+r2=r2_score(Y_test,Y_pred)
+print(r2)
+
+rmse=np.sqrt(mean_squared_error(Y_test,Y_pred))
+print(rmse)
+
+adjusted_r_squared = 1 - (1-r2)*(len(Y)-1)/(len(Y)-X.shape[1]-1)
+print(adjusted_r_squared)
+
+
+# In[21]:
+
+
+new_df["Deviation"]=new_df["Actual sales"]-new_df["Predicted sales"]
+new_df.to_excel("Sales Prediction.xlsx",header=True,index=True)
+new_df.head()
+
+
+# In[1]:
+
+
+#\\\\\\\\\\\\Ridge\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+# In[23]:
+
+
+from sklearn.model_selection import train_test_split
+
+#Split the data into test and train
+X_train,X_test, Y_train, Y_test=train_test_split(X,Y, test_size=0.2,random_state=10)
+
+
+# In[24]:
+
+
+from sklearn.linear_model import Ridge
+lm = Ridge()
+lm.fit(X_train,Y_train)
+
+#print intercpt and coeffficents
+print (lm.intercept_)
+print (lm.coef_)
+
+
+# In[25]:
+
+
+Y_pred=lm.predict(X_test)
+
+from sklearn.metrics import r2_score,mean_squared_error
+import numpy as np
+
+r2=r2_score(Y_test,Y_pred)
+print(r2)
+
+rmse=np.sqrt(mean_squared_error(Y_test,Y_pred))
+print(rmse)
+
+adjusted_r_squared = 1 - (1-r2)*(len(Y)-1)/(len(Y)-X.shape[1]-1)
+print(adjusted_r_squared)
+"""
+Previous values:
+0.834801071903532
+2.59297691109306
+0.8322725168816474
+"""
+
+
+# In[26]:
+
+
+|||||||||LASSO||||||||||||||||
+
+
+# In[27]:
+
+
+from sklearn.linear_model import Lasso
+lm = Lasso()
+lm.fit(X_train,Y_train)
+
+#print intercpt and coeffficents
+print (lm.intercept_)
+print (lm.coef_)
+
+
+# In[28]:
+
+
+Y_pred=lm.predict(X_test)
+
+from sklearn.metrics import r2_score,mean_squared_error
+import numpy as np
+
+r2=r2_score(Y_test,Y_pred)
+print(r2)
+
+rmse=np.sqrt(mean_squared_error(Y_test,Y_pred))
+print(rmse)
+
+adjusted_r_squared = 1 - (1-r2)*(len(Y)-1)/(len(Y)-X.shape[1]-1)
+print(adjusted_r_squared)
+"""
+Previous values:
+0.834801071903532
+2.59297691109306
+0.8322725168816474
+"""
+
+
+# In[29]:
+
+
+#fit(X_train,Y_train)------->sklearn
+#Y-X1+X2+X3,data =df------>statsmodels
+
+
+# In[30]:
+
+
+new_df=pd.DataFrame()
+new_df=X_train
+
+new_df["Sales"]=Y_train
+new_df.shape
+
+
+# In[31]:
+
+
+print(new_df)
+
+
+# In[32]:
+
+
+import statsmodels.formula.api as sm
+
+# create a fitted model with all three features
+lm_model = sm.ols(formula='Sales ~ TV + radio + newspaper', data=new_df).fit()
+
+# print the coefficients
+print(lm_model.params)
+print(lm_model.summary())
+
+
+# In[33]:
+
+
+""""
+H0-->Null Hypothesis
+opp of alternate hypothesis
+
+H1-->Alternate hypothesis
+Stmt which you want to be proved as True
+
+
+H0-->There is no significant relationship between X and Y
+
+H1-->There is a significant relationship between X and Y
+
+p-value<0.05
+If pvalue is low, the null must go
+If pvalue is high, the null must fly
+
+""""
+
+
+# In[34]:
+
+
+Asuumption No.5 There should be no auto correlation in the data 
+can be checked using was Durbin Watson
+
+
+# In[35]:
+
+
+import statsmodels.formula.api as sm
+
+# create a fitted model with all three features
+lm_model = sm.ols(formula='Sales ~ TV + radio ', data=new_df).fit()
+
+# print the coefficients
+print(lm_model.params)
+print(lm_model.summary())
+
+
+# In[36]:
+
+
+plot_lm_1 = plt.figure(1)
+plot_lm_1.set_figheight(8)
+plot_lm_1.set_figwidth(12)
+
+# fitted values (need a constant term for intercept)
+model_fitted_y = lm_model.fittedvalues
+
+plot_lm_1.axes[0] = sns.residplot(model_fitted_y, 'Sales', data=new_df, lowess=True)
+
+plot_lm_1.axes[0].set_title('Residuals vs Fitted')
+plot_lm_1.axes[0].set_xlabel('Fitted values')
+plot_lm_1.axes[0].set_ylabel('Residuals')
+
+
+# In[37]:
+
+
+""""Errors should be random and can be checked using residual vs fitted graph
+The line should not repeat a cyclic pattern in the graph"""
+
+
+# In[38]:
+
+
+res = lm_model.resid
+import statsmodels.api as stm
+import scipy.stats as stats
+fig = stm.qqplot(res, fit=True, line='45')
+plt.title('Normal Q-Q')
+plt.xlabel('Theoretical Quantiles')
+plt.ylabel('Standardized Residuals')
+plt.show()
+
+
+# In[42]:
+
+
+#""""Assumption No:-6 Error should follo normal distribution
+#diagonal line represents normal distribution
+#""""
+
+
+# In[43]:
+
+
+# normalized residuals
+model_norm_residuals = lm_model.get_influence().resid_studentized_internal
+# absolute squared normalized residuals
+model_norm_residuals_abs_sqrt = np.sqrt(np.abs(model_norm_residuals))
+
+plot_lm_3 = plt.figure(3)
+plot_lm_3.set_figheight(8)
+plot_lm_3.set_figwidth(12)
+plt.scatter(model_fitted_y, model_norm_residuals_abs_sqrt, alpha=0.5)
+sns.regplot(model_fitted_y, model_norm_residuals_abs_sqrt, lowess=True)
+
+
+plot_lm_3.axes[0].set_title('Scale-Location')
+plot_lm_3.axes[0].set_xlabel('Fitted values')
+plot_lm_3.axes[0].set_ylabel('$\sqrt{|Standardized Residuals|}$')
+
+
+# In[ ]:
+
+
+homoscedasticity :- equal variance in the data
+hetroscedasticity:- unequal variance in the data
+    
+
+
+# # STOCHASTIC GRADIENT DESENT
+
+# In[44]:
+
+
+import pandas as pd
+import numpy as np
+
+
+# In[46]:
+
+
+df = pd.read_csv(r'C:\Users\Saurabh\Downloads\Advertising.csv', index_col=0, header=0)
+
+
+# In[47]:
+
+
+df.shape
+
+
+# In[48]:
+
+
+#creating X and Y
+#where X with those variables which satisfy the assumption of linearity
+X = df[['TV','radio','newspaper']]
+X1 = df[['TV','radio']]
+Y = df['sales']
+
+
+# In[50]:
+
+
+from sklearn.preprocessing import StandardScaler
+
+scaler=StandardScaler()             #scaler is an object name
+X=scaler.fit_transform(X)
+#scaler.fit(X)                       #fit will train the scaler object(mean ,sd,range of the x varibles and store in scaler obj)
+#X=scaler.transform(X)               #transform function will utilise the knowledge os scaler object and generate the op's
+#print(X)
+
+
+# In[51]:
+
+
+#splitting data into training and testing
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.2,
+                                                        random_state = 10)
+
+
+# In[ ]:
+
+
+from sklearn.model_selection import train_test_split
+
+#Split the data into test and train
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2,
+random_state=10)
+
+
+# In[52]:
+
+
+from sklearn.linear_model import SGDRegressor
+sgd = SGDRegressor(learning_rate = 'constant', eta0 = 0.0001, random_state = 10, max_iter=5000)
+sgd.fit(X_train,Y_train)
+
+
+# In[53]:
+
+
+print(sgd.intercept_)
+print()
+print(sgd.coef_)
+
+
+# In[54]:
+
+
+Y_pred = sgd.predict(X_test)
+
+
+# In[55]:
+
+
+from sklearn.metrics import r2_score,mean_squared_error
+
+r2=r2_score(Y_test,Y_pred)
+print(r2)
+
+rmse=np.sqrt(mean_squared_error(Y_test,Y_pred))
+print(rmse)
+
+adjusted_r_squared = 1 - (1-r2)*(len(Y)-1)/(len(Y)-X.shape[1]-1)
+print(adjusted_r_squared)
