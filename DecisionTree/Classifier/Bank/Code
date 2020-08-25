@@ -1,0 +1,386 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[1]:
+
+
+import numpy as np
+import pandas as pd
+
+
+# # Preprocessing the Training Dataset
+
+# In[73]:
+
+
+train_data = pd.read_csv(r"C:\Users\Saurabh\BootcampProjects\banktrain.csv",header = 0,index_col = 0)
+test_data = pd.read_csv(r"C:\Users\Saurabh\BootcampProjects\banktest.csv",header = 0,index_col = 0)
+
+
+# In[71]:
+
+
+train_data.shape
+
+
+# In[16]:
+
+
+train_data.dtypes
+
+
+# In[4]:
+
+
+train_data.isnull().sum()
+
+
+# In[5]:
+
+
+colname=[]
+for x in train_data.columns:
+    if train_data[x].dtype=='object':
+        colname.append(x)
+colname
+
+
+# In[6]:
+
+
+# For preprocessing the data
+from sklearn import preprocessing
+
+le=preprocessing.LabelEncoder()
+
+for x in colname:
+    train_data[x]=le.fit_transform(train_data[x])
+
+
+# In[7]:
+
+
+train_data.head()
+
+
+# # Building the Model
+
+# In[8]:
+
+
+X=train_data.values[:,:-1]
+Y=train_data.values[:,-1]
+
+
+# In[10]:
+
+
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+scaler.fit(X)
+
+X = scaler.transform(X)
+
+
+# In[11]:
+
+
+#%%
+from sklearn.model_selection import train_test_split
+
+#Split the data into test and train
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.3,
+random_state=10)
+
+
+# In[13]:
+
+
+#predicting using the Decision_Tree_Classifier
+from sklearn.tree import DecisionTreeClassifier
+
+model_DecisionTree=DecisionTreeClassifier(random_state=10)
+
+#fit the model on the data and predict the values
+model_DecisionTree.fit(X_train,Y_train)
+Y_pred=model_DecisionTree.predict(X_test)
+print("Done")
+#%%
+
+
+# In[14]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score,classification_report
+
+cfm=confusion_matrix(Y_test,Y_pred)
+print(cfm)
+
+print("Classification report: ")
+
+print(classification_report(Y_test,Y_pred))
+
+acc=accuracy_score(Y_test, Y_pred)
+print("Accuracy of the model: ",acc)
+
+
+# # Upsampling and Downsampling
+
+# In[55]:
+
+
+#%%
+#Trying to upsample
+from sklearn.utils import resample
+# Separate majority and minority classes
+df_majority = train_data[train_data.outcome==0]
+df_minority = train_data[train_data.outcome==1]
+
+# Upsample minority class
+df_minority_upsampled = resample(df_minority,
+                                replace=True, # sample with replacement
+                                n_samples=29809, # to match majority class
+                                random_state=10) # reproducible results
+
+# Combine majority class with upsampled minority class
+df_upsampled = pd.concat([df_majority, df_minority_upsampled])
+
+# Display new class counts
+df_upsampled.outcome.value_counts()
+
+
+# # Building the model For the 2nd time
+
+# In[56]:
+
+
+X=df_upsampled.values[:,:-1]
+Y=df_upsampled.values[:,-1]
+
+
+# In[57]:
+
+
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+
+scaler.fit(X)
+
+X = scaler.transform(X)
+
+
+# In[58]:
+
+
+#%%
+from sklearn.model_selection import train_test_split
+
+#Split the data into test and train
+X_train, X_test, Y_train, Y_test = train_test_split(X1, Y1, test_size=0.3,
+random_state=10)
+
+
+# In[59]:
+
+
+#predicting using the Decision_Tree_Classifier
+from sklearn.tree import DecisionTreeClassifier
+
+model_DecisionTree=DecisionTreeClassifier(random_state=10)
+
+#fit the model on the data and predict the values
+model_DecisionTree.fit(X_train,Y_train)
+Y_pred=model_DecisionTree.predict(X_test)
+print("Done")
+#%%
+
+
+# In[42]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score,classification_report
+
+cfm=confusion_matrix(Y_test,Y_pred)
+print(cfm)
+
+print("Classification report: ")
+
+print(classification_report(Y_test,Y_pred))
+
+acc=accuracy_score(Y_test, Y_pred)
+print("Accuracy of the model: ",acc)
+
+
+# # Preprocessing the testing Data
+
+# In[72]:
+
+
+test_data.shape
+
+
+# In[61]:
+
+
+test_data.head()
+
+
+# In[62]:
+
+
+print(test_data.isnull().sum())
+
+
+# In[63]:
+
+
+colname=[]
+for x in test_data.columns:
+    if test_data[x].dtype=='object':
+        colname.append(x)
+colname
+
+
+# In[64]:
+
+
+# For preprocessing the data
+from sklearn import preprocessing
+
+le=preprocessing.LabelEncoder()
+
+for x in colname:
+    test_data[x]=le.fit_transform(test_data[x])
+
+
+# In[74]:
+
+
+test_data.head()
+
+
+# In[75]:
+
+
+test_data.dtypes
+
+
+# In[80]:
+
+
+colname=[]
+for x in test_data.columns:
+    if test_data[x].dtype=='object':
+        colname.append(x)
+colname
+
+
+# In[81]:
+
+
+# For preprocessing the data
+from sklearn import preprocessing
+
+le=preprocessing.LabelEncoder()
+
+for x in colname:
+    test_data[x]=le.fit_transform(test_data[x])
+
+
+# In[82]:
+
+
+test_data.head()
+
+
+# # Predicting on the Testing Data
+
+# In[83]:
+
+
+X_test_new=test_data.values[:,:]
+
+
+# In[84]:
+
+
+X_test_new.shape
+
+
+# In[85]:
+
+
+Y_pred=model_DecisionTree.predict(X_test_new)
+
+
+# In[86]:
+
+
+print(Y_pred)
+
+
+# In[87]:
+
+
+Y_pred=Y_pred.astype(int)
+
+
+# In[88]:
+
+
+Y_pred
+
+
+# In[89]:
+
+
+model_DecisionTree.score(X_train,Y_train)
+
+
+# In[90]:
+
+
+testnew=pd.read_csv(r'C:\Users\Saurabh\BootcampProjects\banktest.csv')
+testnew["PREDICTION"]=Y_pred
+testnew.head()
+
+
+# In[91]:
+
+
+X_test_new.shape
+
+
+# In[93]:
+
+
+test_data.shape
+
+
+# In[97]:
+
+
+testnew.Y_predictions=testnew.PREDICTION.map({1:"Yes",0:"No"})
+testnew.head()
+
+
+# In[ ]:
+
+
+#testnew.to_excel("BankOutput.xlsx")
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
