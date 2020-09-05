@@ -1,0 +1,80 @@
+#Author :- Saurabh
+# In[8]:
+
+
+import pandas as pd
+
+
+# In[9]:
+
+
+# read the json file into a dataframe
+df = pd.read_json('your_posts_1.json')
+
+df.head(3)
+
+
+# In[10]:
+
+
+# rename the timestamp column
+df.rename(columns={'timestamp': 'date'}, inplace=True)
+
+#drop some unnecessary columns
+df = df.drop(['attachments', 'title', 'tags'], axis=1)
+
+# making sure it's datetime format
+pd.to_datetime(df['date'])
+
+df.head(3)
+
+
+# In[12]:
+
+
+print(df.shape)
+df.tail(3)
+
+
+# In[13]:
+
+
+df = df.set_index('date')
+
+post_counts = df['data'].resample('MS').size()
+post_counts
+
+
+# In[15]:
+
+
+get_ipython().run_line_magic('matplotlib', 'inline')
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+# set figure size and font size
+sns.set(rc={'figure.figsize':(40,20)})
+sns.set(font_scale=3)
+
+# set x labels
+x_labels = post_counts.index
+
+#create bar plot
+sns.barplot(x_labels, post_counts, color="blue")
+
+# only show x-axis labels for Jan 1 of every other year
+tick_positions = np.arange(10, len(x_labels), step=12)
+
+#reformat date to display year onlyplt.ylabel("post counts")
+plt.xticks(tick_positions, x_labels[tick_positions].strftime("%Y"))
+
+# display the plot
+plt.show()
+
+
+# In[ ]:
+
+
+
+
