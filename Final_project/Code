@@ -1,0 +1,752 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# # Importing the Libraries
+
+# In[1]:
+
+
+import pandas as pd 
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
+
+# In[2]:
+
+
+#Supress warnings
+
+import warnings
+warnings.filterwarnings('ignore')
+
+
+pd.set_option('display.max_columns',None)
+
+
+# # Reading the Data
+
+# In[3]:
+
+
+data=pd.read_csv(r'C:\Users\Saurabh\XYZCorp_LendingData.txt',header=0 ,
+                      delimiter="\t", low_memory=False)
+
+data.shape   #(855969, 73)
+
+
+# In[4]:
+
+
+data.head()
+
+
+# # Data Visualization
+
+# In[5]:
+
+
+data['default_ind'].value_counts()
+
+
+# In[6]:
+
+
+Non_Default = round(data['default_ind'].value_counts()[0]/len(data) * 100, 2)
+
+Default = round(data['default_ind'].value_counts()[1]/len(data) * 100, 2)
+
+print('Non_Default Customer : {} % of the dataset'.format(Non_Default))
+print('Default Customer : {} % of the dataset'.format(Default))
+
+
+# In[7]:
+
+
+sns.countplot('default_ind', data=data)
+plt.title('Class Distribution \n (0 : Non_Default_customer   ||    1 : Default Customer)')
+
+
+# # Term Distribution
+
+# In[8]:
+
+
+plt.figure(figsize=(14, 6))
+sns.barplot(y=data.term.value_counts(), x=data.term.value_counts().index, palette='spring')
+plt.xticks(rotation=0)
+plt.title("Loan's Term Distribution")
+plt.ylabel("Count")
+
+
+# # Amount Distribution
+
+# In[9]:
+
+
+
+fig, ax = plt.subplots(1, 2, figsize=(14,6))
+
+
+sns.distplot(data['loan_amnt'], ax=ax[0])
+ax[0].set_title("Loan Amount Distribution")
+
+sns.distplot(data['funded_amnt'], ax=ax[1])
+ax[1].set_title("Funded Amount Distribution")
+
+
+# In[10]:
+
+
+fig, ax = plt.subplots(1, 2, figsize=(14,6))
+
+
+sns.distplot(data['installment'], ax=ax[0])
+ax[0].set_title("Installments Distribution")
+
+sns.distplot(data['int_rate'], ax=ax[1])
+ax[1].set_title("Interest Rates Distribution")
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# # Data Pre-processing
+
+# In[11]:
+
+
+total = data.isnull().sum().sort_values(ascending=False)
+percent= (data.isnull().sum()/data.isnull().count()  * 100).sort_values(ascending=False)
+missing_data = pd.concat([total,percent],axis=1,keys=['Total','Percent'])
+missing_data.head(32)
+
+
+# In[12]:
+
+
+
+#Feature Selection
+# Out of 73 , few variables have a lot of missing values and some are not helpful or 
+#impactful in order to build a predictive model, hence dropping.
+
+data.drop(['annual_inc_joint','desc',
+            'mths_since_last_record','mths_since_last_major_derog',
+            'dti_joint','verification_status_joint','tot_coll_amt','open_acc_6m','open_il_6m','open_il_12m'
+            ,'open_il_24m','mths_since_rcnt_il','total_bal_il','il_util','open_rv_12m','open_rv_24m',
+            'max_bal_bc','all_util','inq_fi','inq_last_12m','mths_since_last_delinq','total_cu_tl'],axis=1,inplace=True)
+
+data.shape 
+# id variable because its a unique number
+data=data.drop('id',axis=1)
+
+# member_id variable because its a unique number
+data=data.drop('member_id',axis=1)
+
+# payment_plan variable because it has same value for all observation
+data=data.drop('pymnt_plan',axis=1)
+
+# emp_title variable because it's a categorical varibale with (290912 level)
+data=data.drop('emp_title',axis=1)
+
+# title variable because it's a categorical varibale with (61000 level)
+data=data.drop('title',axis=1)
+
+# addr_state variable for trail purpose (51 level)
+data=data.drop('addr_state',axis=1)
+
+
+# In[13]:
+
+
+# Checking if missing values are present and datatype of each variable.
+data.isnull().sum()
+
+
+# In[14]:
+
+
+data.info()
+
+
+# # Missing value Imputation
+
+# In[15]:
+
+
+data['emp_length'].value_counts() 
+
+
+# In[16]:
+
+
+emp_avg_income = data.groupby('emp_length').annual_inc.agg('mean')
+emp_avg_income 
+
+
+# In[17]:
+
+
+def impute_emp_length(cols):
+    emp_length = cols[0]
+    annual_inc = cols[1]
+
+    if pd.isnull(emp_length):
+
+        if annual_inc < 70800:
+            return '< 1 year'
+
+        elif annual_inc in range(70801,72000):
+            return '1 year'
+
+        elif annual_inc in range(72000,72800):
+            return '2 years'
+
+        elif annual_inc in range(72800,73600):
+            return '3 years'
+
+        elif annual_inc in range(73600,74000):
+            return '4 years'
+
+        elif annual_inc in range(74000,74500):
+            return '5 years'
+
+        elif annual_inc in range(74500,74600):
+            return '6 years'
+
+        elif annual_inc in range(74600,74700):
+            return '7 years'
+
+        elif annual_inc in range(74700,74800):
+            return '8 years'
+
+        elif annual_inc in range(74800,75900):
+            return '9 years'
+
+        else:
+            return '10+ years'
+            
+
+    else:
+         return emp_length
+
+
+# In[18]:
+
+
+data['emp_length'] = data[['emp_length','annual_inc']].apply(impute_emp_length, axis=1) 
+
+
+# In[19]:
+
+
+data.annual_inc.quantile([0.25,0.5,0.75]) 
+
+
+# In[20]:
+
+
+print(data['annual_inc'].min())
+print(data['annual_inc'].max()) 
+
+
+# In[21]:
+
+
+def get_box_plot_data(labels, bp):
+    rows_list = []
+
+    for i in range(len(labels)):
+        dict1 = {}
+        dict1['label'] = labels[i]
+        dict1['lower_whisker'] = bp['whiskers'][i*2].get_ydata()[1]
+        dict1['lower_quartile'] = bp['boxes'][i].get_ydata()[1]
+        dict1['median'] = bp['medians'][i].get_ydata()[1]
+        dict1['upper_quartile'] = bp['boxes'][i].get_ydata()[2]
+        dict1['upper_whisker'] = bp['whiskers'][(i*2)+1].get_ydata()[1]
+        rows_list.append(dict1)
+
+    return pd.DataFrame(rows_list) 
+
+
+# In[22]:
+
+
+whiskers = data['annual_inc'] 
+
+
+# In[23]:
+
+
+labels = ['whiskers'] 
+
+
+# In[24]:
+
+
+bp = plt.boxplot([whiskers], labels=labels) 
+
+
+# In[25]:
+
+
+print(get_box_plot_data(labels, bp))
+plt.show() 
+
+
+# In[26]:
+
+
+#creating new vaiable "income_group" with the help of "annual_inc"
+#"income_group" consists of 5 classes 
+bins = [-1,45000,65000,90000,157500,9500000]
+group_names = ['a','b','c','d','e']
+data['income_group'] = pd.cut(data['annual_inc'],bins, labels=group_names) 
+print(data[['annual_inc','income_group']].head(10)) 
+
+
+# In[27]:
+
+
+avg_cur_bal = data.groupby('income_group').annual_inc.agg('mean')
+avg_cur_bal
+
+
+# In[28]:
+
+
+#imputing missing values in "tot_cur_bal" using the variable "income _group" that is created
+def impute_cur_bal(cols):
+    tot_cur_bal = cols[0]
+    income_group = cols[1]
+
+    if pd.isnull(tot_cur_bal):
+
+        if income_group == 'a':
+            return 34910.880700
+
+        elif income_group == 'b':
+            return 55738.297128
+
+        elif income_group == 'c':
+            return 77613.702677
+
+        elif income_group == 'd':
+            return 114350.459656
+
+        else:
+            return 235413.156461
+
+    else:
+        return tot_cur_bal
+
+
+# In[29]:
+
+
+data['tot_cur_bal'] = data[['tot_cur_bal','income_group']].apply(impute_cur_bal, axis=1) 
+
+
+# In[30]:
+
+
+# Imputing missing data for categorical variable with mode value
+
+colname1=['verification_status',
+          'issue_d','last_pymnt_d',
+          'next_pymnt_d','last_credit_pull_d']
+for x in colname1[:]:
+     data[x].fillna(data[x].mode()[0],inplace=True)
+    
+data.isnull().sum()
+
+
+# In[31]:
+
+
+# Imputing missing data for Numerical with mean value / Zeros 
+
+
+colname2=['revol_util','collections_12_mths_ex_med',
+          'total_rev_hi_lim']
+for x in colname2[:]:
+    data[x].fillna(data[x].mean(),inplace=True)
+    
+data.isnull().sum()
+data.shape
+
+
+# In[32]:
+
+
+data = data.drop('income_group',axis=1)
+data.shape
+
+
+# # Converting Categorical Variables into Numerical Ones
+
+# In[33]:
+
+
+# Label Encoding - to label all categorical variable value with numeric value
+#Label will get assigned in Ascending alphabetical of variable value
+
+colname1=['grade','term','sub_grade','emp_length','home_ownership','verification_status',
+          'purpose','zip_code','earliest_cr_line','last_pymnt_d',
+          'next_pymnt_d','last_credit_pull_d','application_type','initial_list_status']
+
+data.head()
+from sklearn import preprocessing
+
+le={}
+
+for x in colname1:
+     le[x]=preprocessing.LabelEncoder()
+
+for x in colname1:
+     data[x]=le[x].fit_transform(data[x])
+data.head()
+
+
+# # Spliting the Data on the basis of issue Data 
+
+# In[34]:
+
+
+
+#Train and Test split
+
+# issue_d is object datatype to make use for split converting issue_d in Date
+
+data.issue_d = pd.to_datetime(data.issue_d)   #%y-%m-%d
+col_name = 'issue_d'
+print (data[col_name].dtype)
+
+#split data in train and test
+
+split_date = "2015-05-01"
+
+train = data.loc[data['issue_d'] <= split_date]
+train=train.drop(['issue_d'],axis=1)
+#train.head()
+train.shape    #(598978, 44)
+
+test = data.loc[data['issue_d'] > split_date]
+test=test.drop(['issue_d'],axis=1)
+#test.head()
+test.shape  #(256991, 44)
+
+
+# In[35]:
+
+
+train.head()
+
+
+# In[36]:
+
+
+test.head()
+
+
+# In[37]:
+
+
+#selecting X and Y
+
+X_train=train.values[:,:-1]
+Y_train=train.values[:,-1]
+Y_train=Y_train.astype(int)
+print(Y_train)
+
+X_test=test.values[:,:-1]
+Y_test=test.values[:,-1]
+Y_test=Y_test.astype(int)
+print(Y_test)
+
+
+# # UDF Function for plotting confusion Matrix
+
+# In[38]:
+
+
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+from sklearn.utils.multiclass import unique_labels
+import itertools
+
+
+def plot_confusion_metrix(cm,classes,
+                         normalize=False,
+                         title='Confusion Matrix',
+                         cmap=plt.cm.Greens):
+    """this function prints and plot the confusion matirx
+    Normalization can be applied by setting 'normalize=True'
+    """
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized Confusion Matrix")
+    else:
+        print("Confusion Matrix")
+        
+    print(cm)
+    
+    plt.imshow(cm, interpolation='nearest',cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks,classes,rotation=35)
+    plt.yticks(tick_marks,classes)
+    
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() /2.
+    
+    for i , j in itertools.product(range(cm.shape[0]), range(cm.shape[0])):
+        plt.text(j, i, format(cm[i,j], fmt),
+                 horizontalalignment='center',
+                 color='white' if cm[i, j] > thresh else 'black')
+    
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.tight_layout()
+
+
+# # Logistic Regression
+
+# In[39]:
+
+
+#all reg module includes in sklearn.linear_model
+from sklearn.linear_model import LogisticRegression
+#create a model
+classifier=LogisticRegression()
+#colname=XYZ_DF_rev.columns[:]
+#fitting training data to the model
+classifier.fit(X_train,Y_train)
+#predicting on Test data
+Y_pred=classifier.predict(X_test)
+#print(list(zip(Y_test,Y_pred)))
+
+
+# In[40]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+conf_matrix = confusion_matrix(Y_test,Y_pred)
+plot_confusion_metrix(conf_matrix,classes=['Non-Default   :  0','Default  :1'])
+plt.show()
+
+print('Classification report')
+
+print(classification_report(Y_test,Y_pred))
+
+acc= accuracy_score(Y_test,Y_pred)
+print("Accuracy of the model:", acc)
+
+
+# # Random Forest
+
+# In[90]:
+
+
+#predicting using the Random_Forest_Classifier
+from sklearn.ensemble import RandomForestClassifier
+
+model_RandomForest=RandomForestClassifier(100,random_state=10)
+
+#fit the model on the data and predict the values
+model_RandomForest.fit(X_train,Y_train)
+
+Y_pred=model_RandomForest.predict(X_test)
+#%%
+
+
+# In[91]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+conf_matrix = confusion_matrix(Y_test,Y_pred)
+plot_confusion_metrix(conf_matrix,classes=['Non-Default   :  0','Default  :1'])
+plt.show()
+
+print('Classification report')
+
+print(classification_report(Y_test,Y_pred))
+
+acc= accuracy_score(Y_test,Y_pred)
+print("Accuracy of the model:", acc)
+
+
+# # Decision_Tree_Classifier
+
+# In[92]:
+
+
+#predicting using the Decision_Tree_Classifier
+from sklearn.tree import DecisionTreeClassifier
+
+model_DecisionTree=DecisionTreeClassifier()
+model_DecisionTree.fit(X_train,Y_train)
+
+#fit the model on the data and predict the values
+Y_pred=model_DecisionTree.predict(X_test)
+
+
+# In[93]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+conf_matrix = confusion_matrix(Y_test,Y_pred)
+plot_confusion_metrix(conf_matrix,classes=['Non-Default   :  0','Default  :1'])
+plt.show()
+
+print('Classification report')
+
+print(classification_report(Y_test,Y_pred))
+
+acc= accuracy_score(Y_test,Y_pred)
+print("Accuracy of the model:", acc)
+
+
+# In[84]:
+
+
+#predicting using the Decision_Tree_Classifier
+from sklearn.tree import DecisionTreeClassifier
+
+model_DecisionTree=DecisionTreeClassifier(criterion = 'gini',min_samples_split=2,random_state=50,class_weight='balanced'
+                                         ,max_depth=30)
+model_DecisionTree.fit(X_train,Y_train)
+
+#fit the model on the data and predict the values
+Y_pred=model_DecisionTree.predict(X_test)
+
+
+# In[85]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+conf_matrix = confusion_matrix(Y_test,Y_pred)
+plot_confusion_metrix(conf_matrix,classes=['Non-Default   :  0','Default  :1'])
+plt.show()
+
+print('Classification report')
+
+print(classification_report(Y_test,Y_pred))
+
+acc= accuracy_score(Y_test,Y_pred)
+print("Accuracy of the model:", acc)
+
+
+# # GRadient Boosting Classifier
+
+# In[94]:
+
+
+#predicting using the 
+from sklearn.ensemble import GradientBoostingClassifier
+
+model_GradientBoosting=GradientBoostingClassifier(n_estimators=100,)
+
+
+#fit the model on the data and predict the values
+model_GradientBoosting.fit(X_train,Y_train)
+
+Y_pred=model_GradientBoosting.predict(X_test)
+
+
+# In[95]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+conf_matrix = confusion_matrix(Y_test,Y_pred)
+plot_confusion_metrix(conf_matrix,classes=['Non-Default   :  0','Default  :1'])
+plt.show()
+
+print('Classification report')
+
+print(classification_report(Y_test,Y_pred))
+
+acc= accuracy_score(Y_test,Y_pred)
+print("Accuracy of the model:", acc)
+
+
+# # ANN
+
+# In[96]:
+
+
+sns.countplot('default_ind', data=train)
+
+plt.title('Class Distribution \n (0 : Non_Default Customer    ||    1 : Default Customer)')
+
+
+# In[97]:
+
+
+nd = round(train['default_ind'].value_counts()[0]/len(train) * 100, 2)
+
+d = round(train['default_ind'].value_counts()[1]/len(train) * 100, 2)
+
+print('Non_Default Customer : {} % of the dataset'.format(nd))
+print('Default Customer : {} % of the dataset'.format(d))
+
+
+# In[98]:
+
+
+from sklearn.neural_network import MLPClassifier
+
+mlp = MLPClassifier(hidden_layer_sizes=(100),max_iter=100, early_stopping=True,
+                    random_state=10, activation="relu", solver="adam",learning_rate="constant",
+                    learning_rate_init=0.01,verbose=True,n_iter_no_change=5)
+mlp.fit(X_train,Y_train)
+Y_pred = mlp.predict(X_test)
+#print(list(zip(Y_test,Y_pred)))
+
+
+# In[99]:
+
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
+conf_matrix = confusion_matrix(Y_test,Y_pred)
+plot_confusion_metrix(conf_matrix,classes=['Non-Default   :  0','Default  :1'])
+plt.show()
+
+print('Classification report')
+
+print(classification_report(Y_test,Y_pred))
+
+acc= accuracy_score(Y_test,Y_pred)
+print("Accuracy of the model:", acc)
+
+
+# # Out of all the models we have tried Gradient Boosting provides the Best accuaracy and the recall factor
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
